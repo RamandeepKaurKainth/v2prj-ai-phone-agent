@@ -1,3 +1,9 @@
+const db = require("./src/db/db");
+
+db.query("SELECT 1")
+  .then(() => console.log("MySQL connected"))
+  .catch(err => console.error("MySQL error:", err));
+
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
