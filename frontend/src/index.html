@@ -1,47 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login - AI Phone Agent</title>
-
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - AI Phone Agent</title>
+  <link rel="stylesheet" href="./css/style.css" />
 </head>
-
 <body>
-    <div>
+  <div class="auth-container">
+    <div class="auth-card">
+      <h1 class="brand-title">AI Phone Agent</h1>
+      <p class="subtitle">Login or create an account to continue</p>
 
-    <div class="tabs">
+      <div class="tabs">
         <div class="tab active" id="loginTab">Login</div>
         <div class="tab" id="registerTab">Register</div>
-    </div>
+      </div>
 
-    <!-- LOGIN FORM -->
-    <form id="loginForm" class="active">
-        <input type="email" id="loginEmail" placeholder="Email" required />
+      <form id="loginForm" class="active">
+        <input type="email" id="loginEmail" placeholder="Email address" required />
         <input type="password" id="loginPassword" placeholder="Password" required />
-
         <p class="error" id="loginError">Invalid login</p>
-
         <button type="submit">Login</button>
-    </form>
+      </form>
 
-    <!-- REGISTER FORM -->
-    <form id="registerForm">
-        <input type="email" id="registerEmail" placeholder="Email" required />
+      <form id="registerForm">
+        <input type="email" id="registerEmail" placeholder="Email address" required />
         <input type="password" id="registerPassword" placeholder="Password" required />
-
         <p class="error" id="registerError">Registration failed</p>
         <p class="success" id="registerSuccess">Account created! You can login now.</p>
-
         <button type="submit">Create Account</button>
-    </form>
-    <div id="errorMsg"></div>
+      </form>
+    </div>
+  </div>
 
-     </div>
-    <script src="js/index.js"></script>
-
+  <script src="./js/index.js"></script>
 </body>
-
 </html>

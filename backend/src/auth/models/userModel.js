@@ -1,4 +1,4 @@
-const db = require("../db");
+const db = require("../../db/db");
 
 const createUser = async (email, password) => {
   const [result] = await db.execute(
@@ -6,7 +6,10 @@ const createUser = async (email, password) => {
     [email, password]
   );
 
-  return { id: result.insertId, email };
+  return {
+    id: result.insertId,
+    email
+  };
 };
 
 const findUserByEmail = async (email) => {
@@ -14,11 +17,13 @@ const findUserByEmail = async (email) => {
     "SELECT * FROM users WHERE email = ?",
     [email]
   );
+
   return rows[0];
 };
 
 const getRemainingTimesByID = async (userId) => {
-  const [rows] = await db.execute(`
+  const [rows] = await db.execute(
+    `
     SELECT
       u.email,
       r.api_limit,
@@ -29,15 +34,20 @@ const getRemainingTimesByID = async (userId) => {
     LEFT JOIN calls c ON c.user_id = u.id
     WHERE u.id = ?
     GROUP BY u.id
-  `, [userId]);
+    `,
+    [userId]
+  );
 
-  if (rows.length === 0) return null;
+  if (rows.length === 0) {
+    return null;
+  }
 
   return rows[0];
 };
 
 const listAllUserUsage = async () => {
-  const [rows] = await db.execute(`
+  const [rows] = await db.execute(
+    `
     SELECT
       u.id,
       u.email,
@@ -49,24 +59,25 @@ const listAllUserUsage = async () => {
     JOIN roles r ON u.role_id = r.id
     LEFT JOIN calls c ON c.user_id = u.id
     GROUP BY u.id
-  `);
+    `
+  );
 
   return rows;
 };
 
-const getUserRole = async(userId)=>{
-    //role ==2 means normal user, role ==1 means admin
-    const [rows] = await db.execute(
-    "select role_id from users where id =?",
+const getUserRole = async (userId) => {
+  const [rows] = await db.execute(
+    "SELECT role_id FROM users WHERE id = ?",
     [userId]
-)
-return rows[0];
-}
+  );
+
+  return rows[0];
+};
 
 module.exports = {
   createUser,
   findUserByEmail,
-  listAllUserUsage,
   getRemainingTimesByID,
+  listAllUserUsage,
   getUserRole
 };

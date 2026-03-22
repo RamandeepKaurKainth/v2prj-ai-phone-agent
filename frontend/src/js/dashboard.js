@@ -1,115 +1,84 @@
+const API_BASE = "http://localhost:3000";
+const token = localStorage.getItem("token");
 
-let token = localStorage.getItem("token"); // assuming JWT stored in localStorage
+if (!token) {
+  window.location.href = "index.html";
+}
 
-// Fetch current user info and remaining API calls
 async function loadUserInfo() {
-    if (!token) {
-        document.getElementById("userInfo").innerText = "Not logged in";
-        return;
-    }
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/me`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const text = await res.text();
+    let data;
 
     try {
-        const res = await fetch("http://localhost:3000/api/v1/user/me", {
-            headers: {
-                "Authorization": "Bearer " + token
-            }
-        });
-
-        if (!res.ok) {
-            document.getElementById("userInfo").innerText = "Error fetching user info";
-            return;
-        }
-
-        const fullResponse = await res.json();
-        //console.log(fullResponse);
-        const type = fullResponse.type;
-        const self = fullResponse.self;
-        document.getElementById("userInfo").innerText =
-            `${self.email}(${type}) | Remaining API calls: ${self.remaining_calls}`;
-        if (type == "admin") {
-            const users = fullResponse.users;
-            const container = document.getElementById("UserListForAdmin");
-            // clear container
-            container.innerHTML = "";
-
-            // create table
-            const table = document.createElement("table");
-            table.border = "1";
-
-            // create header
-            const thead = document.createElement("thead");
-            thead.innerHTML = `
-    <tr>
-      <th>ID</th>
-      <th>Email</th>
-      <th>Role</th>
-      <th>API Limit</th>
-      <th>Used</th>
-      <th>Remaining</th>
-    </tr>
-  `;
-            table.appendChild(thead);
-
-            // create body
-            const tbody = document.createElement("tbody");
-
-            users.forEach(user => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-      <td>${user.id}</td>
-      <td>${user.email}</td>
-      <td>${user.role_name}</td>
-      <td>${user.api_limit}</td>
-      <td>${user.used_calls}</td>
-      <td>${user.remaining_calls}</td>
-    `;
-                tbody.appendChild(row);
-            });
-
-            table.appendChild(tbody);
-
-            // append table to container
-            container.appendChild(table);
-        }
-    } catch (err) {
-        console.error(err);
-        document.getElementById("userInfo").innerText = "Error fetching user info";
+      data = JSON.parse(text);
+    } catch {
+      throw new Error("Server returned invalid JSON");
     }
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to load user info");
+    }
+
+    const userInfoDiv = document.getElementById("userInfo");
+    const adminListDiv = document.getElementById("UserListForAdmin");
+
+    if (data.type === "user") {
+      userInfoDiv.innerHTML = `
+        <p><strong>User:</strong> ${data.self.email}</p>
+        <p><strong>API Limit:</strong> ${data.self.api_limit}</p>
+        <p><strong>Used Calls:</strong> ${data.self.used_calls}</p>
+        <p><strong>Remaining Calls:</strong> ${data.self.remaining_calls}</p>
+      `;
+    } else if (data.type === "admin") {
+      userInfoDiv.innerHTML = `
+        <p><strong>Admin:</strong> ${data.self.email}</p>
+        <p><strong>API Limit:</strong> ${data.self.api_limit}</p>
+        <p><strong>Used Calls:</strong> ${data.self.used_calls}</p>
+        <p><strong>Remaining Calls:</strong> ${data.self.remaining_calls}</p>
+      `;
+
+      let html = "<h3>All Users</h3>";
+
+      data.users.forEach((user) => {
+        html += `
+          <div class="user-box">
+            <p><strong>Email:</strong> ${user.email}</p>
+            <p><strong>Role:</strong> ${user.role_name}</p>
+            <p><strong>API Limit:</strong> ${user.api_limit}</p>
+            <p><strong>Used Calls:</strong> ${user.used_calls}</p>
+            <p><strong>Remaining Calls:</strong> ${user.remaining_calls}</p>
+          </div>
+        `;
+      });
+
+      adminListDiv.innerHTML = html;
+    }
+  } catch (err) {
+    console.error("User info error:", err.message);
+    localStorage.removeItem("token");
+    window.location.href = "index.html";
+  }
 }
 
 async function sendSMS() {
-    const phone = document.getElementById("phone").value;
-    const message = document.getElementById("message").value;
+  const phone = document.getElementById("phone").value.trim();
+  const message = document.getElementById("message").value.trim();
+  const result = document.getElementById("result");
 
-    if (!token) {
-        document.getElementById("result").innerText = "Please log in first.";
-        return;
-    }
+  if (!phone || !message) {
+    result.textContent = "Please enter phone number and message.";
+    return;
+  }
 
-    try {
-        const response = await fetch("http://localhost:3000/send-sms", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify({ phone, message })
-        });
-
-        const data = await response.json();
-
-        if (response.status === 200) {
-            document.getElementById("result").innerText = data.status;
-
-            // Optionally refresh remaining calls
-            loadUserInfo();
-        } else {
-            document.getElementById("result").innerText = data.error || "Error sending SMS";
-        }
-    } catch (err) {
-        console.error(err);
-        document.getElementById("result").innerText = "Network error";
-    }
+  result.textContent = "SMS sending is not connected yet.";
 }
 
 loadUserInfo();

@@ -1,87 +1,121 @@
-// reusable login function
-async function loginUser(email, password) {
-    try {
-        const res = await fetch("http://localhost:3000/api/v1/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password })
-        });
+console.log("CORRECT index.js loaded");
 
-        const data = await res.json();
-
-        if (res.ok) {
-            localStorage.setItem("token", data.token);
-            window.location.href = "dashboard.html"; // redirect
-        } else {
-            return data.error;
-        }
-    } catch (err) {
-        console.error(err);
-        return "Network error";
-    }
-}
-
-// login form submit
-document.getElementById("loginForm").addEventListener("submit", async function(e) {
-    e.preventDefault();
-    const email = document.getElementById("loginEmail").value;
-    const password = document.getElementById("loginPassword").value;
-
-    const error = await loginUser(email, password);
-    if (error) {
-        document.getElementById("loginError").innerText = error;
-        document.getElementById("loginError").style.display = "block";
-    }
-});
-
-// register form submit
-document.getElementById("registerForm").addEventListener("submit", async function(e) {
-    e.preventDefault();
-    const email = document.getElementById("registerEmail").value;
-    const password = document.getElementById("registerPassword").value;
-
-    try {
-        const res = await fetch("http://localhost:3000/api/v1/auth/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password })
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-            // registration successful, automatically login
-            const loginError = await loginUser(email, password);
-            if (loginError) {
-                document.getElementById("registerError").innerText = loginError;
-                document.getElementById("registerError").style.display = "block";
-            }
-        } else {
-            document.getElementById("registerError").innerText = data.error;
-            document.getElementById("registerError").style.display = "block";
-        }
-    } catch (err) {
-        console.error(err);
-        document.getElementById("registerError").innerText = "Network error";
-        document.getElementById("registerError").style.display = "block";
-    }
-});
+const API_BASE = "http://localhost:3000";
 
 const loginTab = document.getElementById("loginTab");
 const registerTab = document.getElementById("registerTab");
+
 const loginForm = document.getElementById("loginForm");
 const registerForm = document.getElementById("registerForm");
-document.getElementById("errorMsg").innerHTML = "";
-loginTab.onclick = () => {
-    loginTab.classList.add("active");
-    registerTab.classList.remove("active");
-    loginForm.classList.add("active");
-    registerForm.classList.remove("active");
-};
 
-registerTab.onclick = () => {
-    registerTab.classList.add("active");
-    loginTab.classList.remove("active");
-    registerForm.classList.add("active");
-    loginForm.classList.remove("active");
-};
+const loginError = document.getElementById("loginError");
+const registerError = document.getElementById("registerError");
+const registerSuccess = document.getElementById("registerSuccess");
+
+loginError.style.display = "none";
+registerError.style.display = "none";
+registerSuccess.style.display = "none";
+
+loginTab.addEventListener("click", () => {
+  loginTab.classList.add("active");
+  registerTab.classList.remove("active");
+
+  loginForm.classList.add("active");
+  registerForm.classList.remove("active");
+
+  loginError.style.display = "none";
+  registerError.style.display = "none";
+  registerSuccess.style.display = "none";
+});
+
+registerTab.addEventListener("click", () => {
+  registerTab.classList.add("active");
+  loginTab.classList.remove("active");
+
+  registerForm.classList.add("active");
+  loginForm.classList.remove("active");
+
+  loginError.style.display = "none";
+  registerError.style.display = "none";
+  registerSuccess.style.display = "none";
+});
+
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  loginError.style.display = "none";
+
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value.trim();
+
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const text = await res.text();
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error("Server returned HTML instead of JSON");
+    }
+
+    if (!res.ok) {
+      throw new Error(data.error || `Login failed (${res.status})`);
+    }
+
+    localStorage.setItem("token", data.token);
+    window.location.href = "dashboard.html";
+  } catch (err) {
+    console.error("Login error:", err);
+    loginError.textContent = err.message;
+    loginError.style.display = "block";
+  }
+});
+
+registerForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  registerError.style.display = "none";
+  registerSuccess.style.display = "none";
+
+  const email = document.getElementById("registerEmail").value.trim();
+  const password = document.getElementById("registerPassword").value.trim();
+
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const text = await res.text();
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error("Server returned HTML instead of JSON");
+    }
+
+    if (!res.ok) {
+      throw new Error(data.error || `Registration failed (${res.status})`);
+    }
+
+    registerSuccess.style.display = "block";
+    registerForm.reset();
+    loginTab.click();
+  } catch (err) {
+    console.error("Register error:", err);
+    registerError.textContent = err.message;
+    registerError.style.display = "block";
+  }
+});
