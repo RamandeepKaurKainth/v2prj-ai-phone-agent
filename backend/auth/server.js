@@ -1,5 +1,6 @@
 const http = require("http");
 const { register, login, verify } = require("./controllers/authController");
+require("dotenv").config();
 
 const server = http.createServer((req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -31,3 +32,5 @@ const server = http.createServer((req, res) => {
 server.listen(process.env.PORT, () => {
     console.log(`Auth service running on port ${process.env.PORT}`);
 });
+
+console.log("Connecting to:", process.env.DB_HOST, process.env.DB_PORT);
