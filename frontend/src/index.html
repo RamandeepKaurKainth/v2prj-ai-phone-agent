@@ -3,34 +3,75 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login - AI Phone Agent</title>
+  <title>AI Phone Agent - Login</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <div class="auth-container">
-    <div class="auth-card">
-      <h1 class="brand-title">AI Phone Agent</h1>
-      <p class="subtitle">Login or create an account to continue</p>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
 
-      <div class="tabs">
-        <div class="tab active" id="loginTab">Login</div>
-        <div class="tab" id="registerTab">Register</div>
-      </div>
+  <div class="auth-shell">
+    <div class="auth-layout">
+      <section class="hero-panel glass-card">
+        <div class="brand-badge">AI Voice Platform</div>
+        <h1>AI Phone Agent</h1>
+        <p class="hero-text">
+          A professional voice assistant platform with secure login, usage tracking,
+          real-time AI responses, and voice playback.
+        </p>
 
-      <form id="loginForm" class="active">
-        <input type="email" id="loginEmail" placeholder="Email address" required />
-        <input type="password" id="loginPassword" placeholder="Password" required />
-        <p class="error" id="loginError">Invalid login</p>
-        <button type="submit">Login</button>
-      </form>
+        <div class="feature-list">
+          <div class="feature-item">
+            <span class="feature-dot"></span>
+            Secure authentication and protected dashboard
+          </div>
+          <div class="feature-item">
+            <span class="feature-dot"></span>
+            Voice recording, transcript, and AI reply
+          </div>
+          <div class="feature-item">
+            <span class="feature-dot"></span>
+            Account usage tracking and admin overview
+          </div>
+        </div>
+      </section>
 
-      <form id="registerForm">
-        <input type="email" id="registerEmail" placeholder="Email address" required />
-        <input type="password" id="registerPassword" placeholder="Password" required />
-        <p class="error" id="registerError">Registration failed</p>
-        <p class="success" id="registerSuccess">Account created! You can login now.</p>
-        <button type="submit">Create Account</button>
-      </form>
+      <section class="auth-card glass-card">
+        <h2 class="brand-title">Welcome Back</h2>
+        <p class="subtitle">Login or create an account to continue</p>
+
+        <div class="tabs">
+          <div class="tab active" id="loginTab">Login</div>
+          <div class="tab" id="registerTab">Register</div>
+        </div>
+
+        <form id="loginForm" class="active">
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" placeholder="Email address" required />
+
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" placeholder="Password" required />
+
+          <div class="form-links">
+            <a href="forgot-password.html">Forgot password?</a>
+          </div>
+
+          <p class="error" id="loginError">Invalid login</p>
+          <button type="submit">Login</button>
+        </form>
+
+        <form id="registerForm">
+          <label for="registerEmail">Email</label>
+          <input type="email" id="registerEmail" placeholder="Email address" required />
+
+          <label for="registerPassword">Password</label>
+          <input type="password" id="registerPassword" placeholder="Password" required />
+
+          <p class="error" id="registerError">Registration failed</p>
+          <p class="success" id="registerSuccess">Account created! You can login now.</p>
+          <button type="submit">Create Account</button>
+        </form>
+      </section>
     </div>
   </div>
 

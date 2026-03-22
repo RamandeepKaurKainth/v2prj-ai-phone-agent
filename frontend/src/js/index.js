@@ -1,6 +1,5 @@
 console.log("CORRECT index.js loaded");
 
-// const API_BASE = "http://localhost:3000";
 const API_BASE = "https://v2prj-ai-phone-agent-9bcp.onrender.com";
 
 const loginTab = document.getElementById("loginTab");
@@ -111,9 +110,13 @@ registerForm.addEventListener("submit", async (e) => {
       throw new Error(data.error || `Registration failed (${res.status})`);
     }
 
+    registerSuccess.textContent = "Account created successfully. You can login now.";
     registerSuccess.style.display = "block";
     registerForm.reset();
-    loginTab.click();
+
+    setTimeout(() => {
+      loginTab.click();
+    }, 1000);
   } catch (err) {
     console.error("Register error:", err);
     registerError.textContent = err.message;

@@ -7,35 +7,96 @@
   <link rel="stylesheet" href="css/dashboard.css" />
 </head>
 <body>
-  <div class="dashboard-container">
-    <div class="top-bar">
-      <div>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
+  <div class="dashboard-shell">
+    <header class="top-bar glass-card">
+      <div class="top-bar-left">
+        <div class="brand-badge">AI Voice Assistant</div>
         <h1>AI Phone Agent Dashboard</h1>
-        <p>Send messages and monitor account usage</p>
+        <p>Record your voice, get a smart reply, and track account usage in real time.</p>
       </div>
-      <a href="/index.html" class="logout-btn" onclick="localStorage.removeItem('token')">Logout</a>
-    </div>
 
-    <div class="dashboard-grid">
-      <section class="card">
-        <h2>Send SMS</h2>
+      <div class="top-bar-right">
+        <div class="status-chip">
+          <span class="status-dot"></span>
+          System Ready
+        </div>
+        <a href="index.html" class="logout-btn" onclick="localStorage.removeItem('token')">Logout</a>
+      </div>
+    </header>
 
-        <label for="phone">Phone Number</label>
-        <input type="text" id="phone" placeholder="+16045551234" />
+    <main class="dashboard-grid">
+      <section class="glass-card main-card">
+        <div class="section-header">
+          <div>
+            <span class="section-tag">Live Agent</span>
+            <h2>Voice Conversation</h2>
+          </div>
+        </div>
 
-        <label for="message">Message</label>
-        <textarea id="message" placeholder="Type your message"></textarea>
+        <label for="sessionId">Session ID</label>
+        <input type="text" id="sessionId" placeholder="conversation-1" />
 
-        <button onclick="sendSMS()">Send Message</button>
-        <p id="result"></p>
+        <div class="call-panel">
+          <div class="call-visual">
+            <div class="pulse-ring ring-1"></div>
+            <div class="pulse-ring ring-2"></div>
+            <div class="pulse-ring ring-3"></div>
+            <div class="call-core" id="callCore">
+              <span id="callCoreText">Ready</span>
+            </div>
+          </div>
+
+          <div class="call-controls">
+            <button id="recordBtn" class="primary-btn" onclick="recordAndSend()">Start Recording</button>
+            <p id="recordingStatus" class="muted-text">Press the button to record 5 seconds of audio.</p>
+          </div>
+        </div>
+
+        <div class="response-grid">
+          <div class="response-card">
+            <h3>Transcript</h3>
+            <p id="transcript">No transcript yet.</p>
+          </div>
+
+          <div class="response-card">
+            <h3>Agent Reply</h3>
+            <p id="agentReply">No reply yet.</p>
+          </div>
+        </div>
+
+        <div class="audio-block">
+          <label>Voice Reply</label>
+          <audio id="replyAudio" controls></audio>
+        </div>
+
+        <p id="result" class="result-text"></p>
       </section>
 
-      <aside class="card">
-        <h2>Account Overview</h2>
-        <div id="userInfo">Loading user...</div>
-        <div id="UserListForAdmin"></div>
+      <aside class="side-column">
+        <section class="glass-card stats-card">
+          <div class="section-header">
+            <div>
+              <span class="section-tag">Account</span>
+              <h2>Usage Overview</h2>
+            </div>
+          </div>
+          <div id="userInfo">Loading user...</div>
+        </section>
+
+        <section class="glass-card admin-card">
+          <div class="section-header">
+            <div>
+              <span class="section-tag">Admin</span>
+              <h2>User Summary</h2>
+            </div>
+          </div>
+          <div id="UserListForAdmin"></div>
+        </section>
       </aside>
-    </div>
+    </main>
   </div>
 
   <script src="js/dashboard.js"></script>

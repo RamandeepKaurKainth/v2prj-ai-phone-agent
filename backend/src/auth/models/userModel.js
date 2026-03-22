@@ -25,6 +25,7 @@ const getRemainingTimesByID = async (userId) => {
   const [rows] = await db.execute(
     `
     SELECT
+      u.id,
       u.email,
       r.api_limit,
       COUNT(c.id) AS used_calls,
@@ -74,10 +75,28 @@ const getUserRole = async (userId) => {
   return rows[0];
 };
 
+const findUserById = async (userId) => {
+  const [rows] = await db.execute(
+    "SELECT * FROM users WHERE id = ?",
+    [userId]
+  );
+
+  return rows[0];
+};
+
+const updatePasswordById = async (userId, hashedPassword) => {
+  await db.execute(
+    "UPDATE users SET password = ? WHERE id = ?",
+    [hashedPassword, userId]
+  );
+};
+
 module.exports = {
   createUser,
   findUserByEmail,
   getRemainingTimesByID,
   listAllUserUsage,
-  getUserRole
+  getUserRole,
+  findUserById,
+  updatePasswordById
 };

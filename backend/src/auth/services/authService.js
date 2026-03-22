@@ -1,6 +1,9 @@
+const crypto = require("crypto");
 const userModel = require("../models/userModel");
+const passwordResetModel = require("../models/passwordResetModel");
 const { hashPassword, comparePassword } = require("../utils/hash");
 const { generateToken, verifyToken } = require("../utils/jwt");
+const { sendPasswordResetEmail } = require("../../services/emailService");
 
 const register = async (email, password) => {
   const existingUser = await userModel.findUserByEmail(email);
@@ -57,6 +60,7 @@ const verify = async (req) => {
     const selfInfo = await userModel.getRemainingTimesByID(userId);
 
     info = {
+      userId,
       type: "user",
       self: selfInfo
     };
@@ -65,6 +69,7 @@ const verify = async (req) => {
     const fullInfo = await userModel.listAllUserUsage();
 
     info = {
+      userId,
       type: "admin",
       self: selfInfo,
       users: fullInfo
@@ -76,4 +81,47 @@ const verify = async (req) => {
   return info;
 };
 
-module.exports = { register, login, verify };
+const forgotPassword = async (email) => {
+  const user = await userModel.findUserByEmail(email);
+
+  if (!user) {
+    throw new Error("No account found with that email");
+  }
+
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 30);
+
+  await passwordResetModel.createResetToken(user.id, resetToken, expiresAt);
+
+  const resetLink = `${process.env.FRONTEND_URL}/reset-password.html?token=${resetToken}`;
+
+  await sendPasswordResetEmail(user.email, resetLink);
+
+  return {
+    message: "Password reset email sent successfully"
+  };
+};
+
+const resetPassword = async (token, newPassword) => {
+  const resetEntry = await passwordResetModel.findValidToken(token);
+
+  if (!resetEntry) {
+    throw new Error("Reset token is invalid or expired");
+  }
+
+  const hashedPassword = await hashPassword(newPassword);
+  await userModel.updatePasswordById(resetEntry.user_id, hashedPassword);
+  await passwordResetModel.deleteToken(token);
+
+  return {
+    message: "Password reset successfully"
+  };
+};
+
+module.exports = {
+  register,
+  login,
+  verify,
+  forgotPassword,
+  resetPassword
+};
