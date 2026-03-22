@@ -1,6 +1,7 @@
 console.log("CORRECT index.js loaded");
 
-const API_BASE = "http://localhost:3000";
+// const API_BASE = "http://localhost:3000";
+const API_BASE = "https://v2prj-ai-phone-agent-9bcp.onrender.com";
 
 const loginTab = document.getElementById("loginTab");
 const registerTab = document.getElementById("registerTab");
