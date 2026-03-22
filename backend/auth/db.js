@@ -11,7 +11,7 @@ const pool = mysql.createPool({
     rejectUnauthorized: false
   },
   waitForConnections: true,
-  connectionLimit: 10
+  connectionLimit: 20
 });
 
 console.log("Connecting to:", process.env.DB_HOST, process.env.DB_PORT);
