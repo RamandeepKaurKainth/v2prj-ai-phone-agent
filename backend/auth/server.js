@@ -1,3 +1,14 @@
+const db = require("./db");
+
+(async () => {
+  try {
+    const [rows] = await db.execute("SELECT 1");
+    console.log("Database connected successfully");
+  } catch (err) {
+    console.error("DB connection failed:", err);
+  }
+})();
+
 const http = require("http");
 const { register, login, verify } = require("./controllers/authController");
 require("dotenv").config();
