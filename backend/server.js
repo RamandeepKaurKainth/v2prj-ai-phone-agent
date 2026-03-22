@@ -13,9 +13,10 @@ app.use(cors({
   origin: [
     "http://127.0.0.1:5500",
     "http://localhost:5500",
-    process.env.FRONTEND_URL
-  ].filter(Boolean),
-  methods: ["GET", "POST", "PUT", "DELETE"],
+    "https://v2prj-ai-phone-agent-1.onrender.com"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
 
