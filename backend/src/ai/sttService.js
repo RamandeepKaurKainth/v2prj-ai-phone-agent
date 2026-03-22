@@ -6,14 +6,13 @@ async function speechToText(audioBuffer, mimetype) {
       throw new Error("Missing DEEPGRAM_API_KEY");
     }
 
-    if (!audioBuffer) {
+    if (!audioBuffer || audioBuffer.length === 0) {
       throw new Error("No audio buffer received");
     }
 
     console.log("STT mimetype:", mimetype);
     console.log("STT buffer size:", audioBuffer.length);
 
-    // WhatsApp sometimes labels audio oddly
     if (mimetype === "video/mpeg") {
       mimetype = "audio/ogg";
     }
@@ -39,9 +38,6 @@ async function speechToText(audioBuffer, mimetype) {
     return transcript || null;
   } catch (err) {
     console.error("STT Error:", err.message || err);
-    if (err.response) {
-      console.error("STT API response:", err.response);
-    }
     return null;
   }
 }
