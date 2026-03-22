@@ -1,24 +1,75 @@
 const express = require("express");
-const { agentRespond } = require("../ai/agentService");
-const { speechToText } = require("../ai/sttService");
-const { textToSpeech } = require("../ai/ttsService");
-
+const multer = require("multer");
 const router = express.Router();
 
-router.post("/test", async (req, res) => {
-  const { prompt } = req.body;
-  const reply = await agentRespond("test-session", prompt);
-  res.json({ reply });
-});
+const upload = multer();
 
-router.post("/full", async (req, res) => {
-  const { audioBuffer, sessionId } = req.body;
+const { speechToText } = require("../ai/sttService");
+const { agentRespond } = require("../ai/agentService");
+const { textToSpeech } = require("../ai/ttsService");
 
-  const text = await speechToText(audioBuffer);
-  const reply = await agentRespond(sessionId, text);
-  const audio = await textToSpeech(reply);
+router.post("/full", upload.single("audio"), async (req, res) => {
+  try {
+    console.log("---- /full route called ----");
 
-  res.json({ text, reply, audio });
+    if (!req.file) {
+      return res.status(400).json({
+        step: "upload",
+        error: "No audio file uploaded",
+      });
+    }
+
+    const audioBuffer = req.file.buffer;
+    const mimetype = req.file.mimetype;
+    const sessionId = req.body.sessionId || "session1";
+
+    console.log("Uploaded file:", req.file.originalname);
+    console.log("Mimetype:", mimetype);
+    console.log("Session ID:", sessionId);
+
+    const text = await speechToText(audioBuffer, mimetype);
+    if (!text) {
+      return res.status(500).json({
+        step: "stt",
+        error: "Speech-to-text failed",
+      });
+    }
+
+    console.log("Transcript:", text);
+
+    const reply = await agentRespond(sessionId, text);
+    if (!reply) {
+      return res.status(500).json({
+        step: "llm",
+        error: "LLM failed",
+      });
+    }
+
+    console.log("LLM reply:", reply);
+
+    const audio = await textToSpeech(reply);
+    if (!audio) {
+      return res.status(500).json({
+        step: "tts",
+        error: "Text-to-speech failed",
+      });
+    }
+
+    console.log("TTS success");
+
+    return res.json({
+      success: true,
+      text,
+      reply,
+      audio: audio.toString("base64"),
+    });
+  } catch (err) {
+    console.error("Pipeline error:", err.message || err);
+    return res.status(500).json({
+      step: "pipeline",
+      error: err.message || "Pipeline failed",
+    });
+  }
 });
 
 module.exports = router;
