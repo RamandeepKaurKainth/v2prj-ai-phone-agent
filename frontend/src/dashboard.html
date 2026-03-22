@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Send SMS</title>
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+
+<body>
+
+  <header>
+    <h2>Send SMS</h2>
+    <div id="userInfo">Loading user...</div>
+  </header>
+
+  <label>Phone Number:</label><br>
+  <input type="text" id="phone" placeholder="+16045551234"><br>
+
+  <label>Message:</label><br>
+  <textarea id="message" placeholder="Type your message"></textarea><br>
+
+  <button onclick="sendSMS()">Send</button>
+
+  <p id="result"></p>
+
+  <div id="UserListForAdmin"></div>
+  <script src="js/dashboard.js"></script>
+
+
+
+</body>
+
+</html>

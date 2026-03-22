@@ -1,11 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - AI Phone Agent</title>
+
+    <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
-    
+    <div>
+
+    <div class="tabs">
+        <div class="tab active" id="loginTab">Login</div>
+        <div class="tab" id="registerTab">Register</div>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <form id="loginForm" class="active">
+        <input type="email" id="loginEmail" placeholder="Email" required />
+        <input type="password" id="loginPassword" placeholder="Password" required />
+
+        <p class="error" id="loginError">Invalid login</p>
+
+        <button type="submit">Login</button>
+    </form>
+
+    <!-- REGISTER FORM -->
+    <form id="registerForm">
+        <input type="email" id="registerEmail" placeholder="Email" required />
+        <input type="password" id="registerPassword" placeholder="Password" required />
+
+        <p class="error" id="registerError">Registration failed</p>
+        <p class="success" id="registerSuccess">Account created! You can login now.</p>
+
+        <button type="submit">Create Account</button>
+    </form>
+    <div id="errorMsg"></div>
+
+     </div>
+    <script src="js/index.js"></script>
+
 </body>
+
 </html>

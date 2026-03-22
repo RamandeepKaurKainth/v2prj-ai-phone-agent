@@ -1,0 +1,41 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+#userInfo {
+  font-weight: bold;
+}
+
+input,
+textarea,
+button {
+  width: 300px;
+  padding: 8px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+button {
+  width: 100px;
+  background-color: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #1e4ed8;
+}
+
+#result {
+  margin-top: 15px;
+  font-weight: bold;
+}
