@@ -122,7 +122,6 @@ async function loadRecentCalls() {
       <div class="user-box">
         <p><strong>Phone:</strong> ${call.phone_number || "N/A"}</p>
         <p><strong>Goal:</strong> ${call.goal || "N/A"}</p>
-        <p><strong>Role:</strong> ${call.role || "N/A"}</p>
         <p><strong>Message:</strong> ${call.transcript || ""}</p>
         <p><strong>Time:</strong> ${call.created_at ? new Date(call.created_at).toLocaleString() : "N/A"}</p>
       </div>
