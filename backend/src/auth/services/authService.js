@@ -82,20 +82,31 @@ const verify = async (req) => {
 };
 
 const forgotPassword = async (email) => {
+  console.log("forgotPassword started");
+  console.log("Email received:", email);
+
   const user = await userModel.findUserByEmail(email);
+  console.log("User lookup result:", user ? "FOUND" : "NOT FOUND");
 
   if (!user) {
     throw new Error("No account found with that email");
   }
 
   const resetToken = crypto.randomBytes(32).toString("hex");
+  console.log("Reset token generated");
+
   const expiresAt = new Date(Date.now() + 1000 * 60 * 30);
+  console.log("Expiry set:", expiresAt);
 
   await passwordResetModel.createResetToken(user.id, resetToken, expiresAt);
+  console.log("Reset token saved in database");
 
   const resetLink = `${process.env.FRONTEND_URL}/reset-password.html?token=${resetToken}`;
+  console.log("Reset link created:", resetLink);
 
+  console.log("About to send password reset email...");
   await sendPasswordResetEmail(user.email, resetLink);
+  console.log("Password reset email sent successfully");
 
   return {
     message: "Password reset email sent successfully"

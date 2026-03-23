@@ -11,22 +11,31 @@ const transporter = nodemailer.createTransport({
   family: 4 // IMPORTANT FIX
 });
 
-const sendPasswordResetEmail = async (toEmail, resetLink) => {
-  console.log("Sending email to:", toEmail);
+const sendPasswordResetEmail = async (email, resetLink) => {
+  try {
+    console.log("sendPasswordResetEmail called");
+    console.log("Recipient:", email);
+    console.log("Reset link:", resetLink);
+    console.log("EMAIL_USER:", process.env.EMAIL_USER);
+    console.log("FRONTEND_URL:", process.env.FRONTEND_URL);
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: toEmail,
-    subject: "Reset your AI Phone Agent password",
-    html: `
-      <h2>Password Reset</h2>
-      <p>Click below:</p>
-      <a href="${resetLink}">Reset Password</a>
-    `
-  };
+    const info = await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Password Reset",
+      html: `
+        <p>You requested a password reset.</p>
+        <p>Click the link below to reset your password:</p>
+        <a href="${resetLink}">${resetLink}</a>
+      `
+    });
 
-  await transporter.sendMail(mailOptions);
-  console.log("Email sent successfully");
+    console.log("Email sent:", info.response);
+    return info;
+  } catch (error) {
+    console.error("sendPasswordResetEmail error:", error);
+    throw error;
+  }
 };
 
 module.exports = {
