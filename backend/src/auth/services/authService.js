@@ -109,7 +109,8 @@ const forgotPassword = async (email) => {
   console.log("Password reset email sent successfully");
 
   return {
-    message: "Password reset email sent successfully"
+    message: "Password reset email sent successfully",
+    resetLink // Include this for testing purposes, remove in production  
   };
 };
 

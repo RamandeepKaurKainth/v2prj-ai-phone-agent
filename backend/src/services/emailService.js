@@ -1,14 +1,22 @@
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
+  service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   },
-  family: 4 // IMPORTANT FIX
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000
+});
+
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("Mailer verify failed:", error);
+  } else {
+    console.log("Mailer is ready");
+  }
 });
 
 const sendPasswordResetEmail = async (email, resetLink) => {
@@ -20,7 +28,7 @@ const sendPasswordResetEmail = async (email, resetLink) => {
     console.log("FRONTEND_URL:", process.env.FRONTEND_URL);
 
     const info = await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: `"AI Phone Agent" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Password Reset",
       html: `
