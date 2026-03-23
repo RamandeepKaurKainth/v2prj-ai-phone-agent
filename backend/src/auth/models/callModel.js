@@ -8,16 +8,16 @@ const saveMessage = async ({
   role,
   message
 }) => {
-  if (!callSid || !role || !message) {
+  if (!callSid || !message) {
     throw new Error("Missing required fields");
   }
 
   const [result] = await db.execute(
     `
-    INSERT INTO calls (user_id, call_sid, phone_number, goal, role, transcript)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO calls (user_id, call_sid, phone_number, goal, transcript)
+    VALUES (?, ?, ?, ?, ?)
     `,
-    [userId, callSid, phoneNumber, goal, role, message]
+    [userId, callSid, phoneNumber, goal, message]
   );
 
   return result.insertId;
