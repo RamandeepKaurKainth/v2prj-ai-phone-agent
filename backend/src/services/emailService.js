@@ -3,6 +3,14 @@ dns.setDefaultResultOrder("ipv4first");
 
 const nodemailer = require("nodemailer");
 
+if (!process.env.EMAIL_USER) {
+  throw new Error("Missing EMAIL_USER");
+}
+
+if (!process.env.EMAIL_PASS) {
+  throw new Error("Missing EMAIL_PASS");
+}
+
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
@@ -12,12 +20,12 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000
+  connectionTimeout: 20000,
+  greetingTimeout: 20000,
+  socketTimeout: 20000
 });
 
-transporter.verify((error, success) => {
+transporter.verify((error) => {
   if (error) {
     console.error("Mailer verify failed:", error);
   } else {
@@ -27,11 +35,9 @@ transporter.verify((error, success) => {
 
 const sendPasswordResetEmail = async (email, resetLink) => {
   try {
-    console.log("sendPasswordResetEmail called");
-    console.log("Recipient:", email);
-    console.log("Reset link:", resetLink);
-    console.log("EMAIL_USER:", process.env.EMAIL_USER);
-    console.log("FRONTEND_URL:", process.env.FRONTEND_URL);
+    if (!email || !resetLink) {
+      throw new Error("Email and resetLink are required");
+    }
 
     const info = await transporter.sendMail({
       from: `"AI Phone Agent" <${process.env.EMAIL_USER}>`,

@@ -6,6 +6,10 @@ const { generateToken, verifyToken } = require("../utils/jwt");
 const { sendPasswordResetEmail } = require("../../services/emailService");
 
 const register = async (email, password) => {
+  if (!email || !password) {
+    throw new Error("Email and password are required");
+  }
+
   const existingUser = await userModel.findUserByEmail(email);
 
   if (existingUser) {
@@ -19,6 +23,10 @@ const register = async (email, password) => {
 };
 
 const login = async (email, password) => {
+  if (!email || !password) {
+    throw new Error("Email and password are required");
+  }
+
   const user = await userModel.findUserByEmail(email);
 
   if (!user) {
@@ -47,17 +55,16 @@ const verify = async (req) => {
   }
 
   const userId = payload.userId;
-  const sqlRole = await userModel.getUserRole(userId);
+  const role = await userModel.getUserRole(userId);
 
-  if (!sqlRole) {
+  if (!role) {
     throw new Error("User role not found");
   }
 
-  const role = sqlRole.role_id;
   let info = {};
 
   if (role === 2) {
-    const selfInfo = await userModel.getRemainingTimesByID(userId);
+    const selfInfo = await userModel.getRemainingCallsById(userId);
 
     info = {
       userId,
@@ -65,7 +72,7 @@ const verify = async (req) => {
       self: selfInfo
     };
   } else if (role === 1) {
-    const selfInfo = await userModel.getRemainingTimesByID(userId);
+    const selfInfo = await userModel.getRemainingCallsById(userId);
     const fullInfo = await userModel.listAllUserUsage();
 
     info = {
@@ -82,39 +89,41 @@ const verify = async (req) => {
 };
 
 const forgotPassword = async (email) => {
-  console.log("forgotPassword started");
-  console.log("Email received:", email);
+  if (!email) {
+    throw new Error("Email is required");
+  }
 
   const user = await userModel.findUserByEmail(email);
-  console.log("User lookup result:", user ? "FOUND" : "NOT FOUND");
 
   if (!user) {
-    throw new Error("No account found with that email");
+    return {
+      message: "If an account exists, a reset link has been sent."
+    };
   }
 
   const resetToken = crypto.randomBytes(32).toString("hex");
-  console.log("Reset token generated");
-
   const expiresAt = new Date(Date.now() + 1000 * 60 * 30);
-  console.log("Expiry set:", expiresAt);
 
   await passwordResetModel.createResetToken(user.id, resetToken, expiresAt);
-  console.log("Reset token saved in database");
+
+  if (!process.env.FRONTEND_URL) {
+    throw new Error("Missing FRONTEND_URL");
+  }
 
   const resetLink = `${process.env.FRONTEND_URL}/reset-password.html?token=${resetToken}`;
-  console.log("Reset link created:", resetLink);
 
-  console.log("About to send password reset email...");
   await sendPasswordResetEmail(user.email, resetLink);
-  console.log("Password reset email sent successfully");
 
   return {
-    message: "Password reset email sent successfully",
-    resetLink // Include this for testing purposes, remove in production  
+    message: "If an account exists, a reset link has been sent."
   };
 };
 
 const resetPassword = async (token, newPassword) => {
+  if (!token || !newPassword) {
+    throw new Error("Token and new password are required");
+  }
+
   const resetEntry = await passwordResetModel.findValidToken(token);
 
   if (!resetEntry) {

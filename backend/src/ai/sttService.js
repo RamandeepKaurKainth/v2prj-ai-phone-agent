@@ -1,22 +1,26 @@
 const { DeepgramClient } = require("@deepgram/sdk");
 
 async function speechToText(audioBuffer, mimetype) {
+  if (!process.env.DEEPGRAM_API_KEY) {
+    throw new Error("Missing DEEPGRAM_API_KEY");
+  }
+
+  if (!audioBuffer || audioBuffer.length === 0) {
+    throw new Error("No audio buffer received");
+  }
+
+  if (!Buffer.isBuffer(audioBuffer)) {
+    throw new Error("audioBuffer is not a valid Buffer");
+  }
+
+  const normalizedMimeType =
+    mimetype === "video/mpeg" ? "audio/mpeg" : mimetype;
+
+  console.log("STT mimetype:", mimetype);
+  console.log("STT normalized mimetype:", normalizedMimeType);
+  console.log("STT buffer size:", audioBuffer.length);
+
   try {
-    if (!process.env.DEEPGRAM_API_KEY) {
-      throw new Error("Missing DEEPGRAM_API_KEY");
-    }
-
-    if (!audioBuffer || audioBuffer.length === 0) {
-      throw new Error("No audio buffer received");
-    }
-
-    console.log("STT mimetype:", mimetype);
-    console.log("STT buffer size:", audioBuffer.length);
-
-    if (mimetype === "video/mpeg") {
-      mimetype = "audio/ogg";
-    }
-
     const deepgram = new DeepgramClient({
       apiKey: process.env.DEEPGRAM_API_KEY,
     });
@@ -26,7 +30,7 @@ async function speechToText(audioBuffer, mimetype) {
       {
         model: "nova-3",
         smart_format: true,
-        mimetype: mimetype,
+        mimetype: normalizedMimeType,
       }
     );
 
@@ -35,10 +39,15 @@ async function speechToText(audioBuffer, mimetype) {
     const transcript =
       response?.results?.channels?.[0]?.alternatives?.[0]?.transcript;
 
-    return transcript || null;
+    if (!transcript || !transcript.trim()) {
+      return null;
+    }
+
+    return transcript.trim();
   } catch (err) {
-    console.error("STT Error:", err.message || err);
-    return null;
+    console.error("STT Error message:", err.message);
+    console.error("STT Error:", err);
+    throw err;
   }
 }
 

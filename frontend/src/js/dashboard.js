@@ -1,4 +1,4 @@
-const API_BASE = "https://v2prj-ai-phone-agent-9bcp.onrender.com";
+const API_BASE = window.location.origin;
 const token = localStorage.getItem("token");
 
 if (!token) {
@@ -15,6 +15,11 @@ const callCoreText = document.getElementById("callCoreText");
 const userInfoBox = document.getElementById("userInfo");
 const adminListBox = document.getElementById("UserListForAdmin");
 const recentCallsBox = document.getElementById("recentCalls");
+
+function redirectToLogin() {
+  localStorage.removeItem("token");
+  window.location.href = "index.html";
+}
 
 function setCallState(state) {
   if (state === "recording") {
@@ -35,6 +40,21 @@ function setCallState(state) {
   }
 }
 
+function renderAdminUsers(users) {
+  if (!Array.isArray(users) || users.length === 0) {
+    adminListBox.innerHTML = "<p>No users found.</p>";
+    return;
+  }
+
+  adminListBox.innerHTML = users.map(user => `
+    <div class="user-box">
+      <p><strong>${user.email}</strong></p>
+      <p>Remaining calls: ${user.remaining_calls}</p>
+      <p>Used calls: ${user.used_calls}</p>
+    </div>
+  `).join("");
+}
+
 async function loadUserInfo() {
   try {
     const res = await fetch(`${API_BASE}/api/auth/me`, {
@@ -44,6 +64,11 @@ async function loadUserInfo() {
       }
     });
 
+    if (res.status === 401) {
+      redirectToLogin();
+      return;
+    }
+
     const data = await res.json();
 
     if (!res.ok) {
@@ -51,51 +76,19 @@ async function loadUserInfo() {
     }
 
     userInfoBox.innerHTML = `
-      <p><strong>Email:</strong> ${data.email}</p>
-      <p><strong>Role:</strong> ${data.is_admin ? "Admin" : "User"}</p>
-      <p><strong>Remaining calls:</strong> ${data.remaining_calls}</p>
+      <p><strong>User ID:</strong> ${data.userId}</p>
+      <p><strong>Role:</strong> ${data.type}</p>
+      <p><strong>Remaining calls:</strong> ${data.self?.remaining_calls ?? "N/A"}</p>
     `;
 
-    if (data.is_admin) {
-      loadAdminUsers();
+    if (data.type === "admin") {
+      renderAdminUsers(data.users);
     } else {
       adminListBox.innerHTML = "<p>Admin access only.</p>";
     }
   } catch (err) {
     console.error("User info error:", err);
     userInfoBox.innerHTML = `<p>${err.message}</p>`;
-  }
-}
-
-async function loadAdminUsers() {
-  try {
-    const res = await fetch(`${API_BASE}/api/auth/admin/users`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to load admin data");
-    }
-
-    if (!Array.isArray(data) || data.length === 0) {
-      adminListBox.innerHTML = "<p>No users found.</p>";
-      return;
-    }
-
-    adminListBox.innerHTML = data.map(user => `
-      <div class="user-box">
-        <p><strong>${user.email}</strong></p>
-        <p>Remaining calls: ${user.remaining_calls}</p>
-      </div>
-    `).join("");
-  } catch (err) {
-    console.error("Admin load error:", err);
-    adminListBox.innerHTML = `<p>${err.message}</p>`;
   }
 }
 
@@ -107,6 +100,11 @@ async function loadRecentCalls() {
         Authorization: `Bearer ${token}`
       }
     });
+
+    if (res.status === 401) {
+      redirectToLogin();
+      return;
+    }
 
     const data = await res.json();
 
@@ -156,7 +154,10 @@ async function recordAndSend() {
       const audioBlob = new Blob(chunks, { type: "audio/webm" });
       const formData = new FormData();
       formData.append("audio", audioBlob, "recording.webm");
-      formData.append("sessionId", document.getElementById("sessionId").value || "conversation-1");
+
+      const sessionInput = document.getElementById("sessionId");
+      const sessionId = sessionInput ? sessionInput.value.trim() || "conversation-1" : "conversation-1";
+      formData.append("sessionId", sessionId);
 
       try {
         const res = await fetch(`${API_BASE}/api/phone-agent/full`, {
@@ -166,6 +167,11 @@ async function recordAndSend() {
           },
           body: formData
         });
+
+        if (res.status === 401) {
+          redirectToLogin();
+          return;
+        }
 
         const data = await res.json();
 
@@ -243,6 +249,11 @@ async function startPhoneCall() {
         goal
       })
     });
+
+    if (res.status === 401) {
+      redirectToLogin();
+      return;
+    }
 
     const data = await res.json();
 

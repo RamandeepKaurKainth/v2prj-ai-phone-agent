@@ -18,32 +18,28 @@ const findUserByEmail = async (email) => {
     [email]
   );
 
-  return rows[0];
+  return rows[0] || null;
 };
 
-const getRemainingTimesByID = async (userId) => {
+const getRemainingCallsById = async (userId) => {
   const [rows] = await db.execute(
     `
     SELECT
       u.id,
       u.email,
       r.api_limit,
-      COUNT(c.id) AS used_calls,
-      (r.api_limit - COUNT(c.id)) AS remaining_calls
+      COUNT(DISTINCT c.call_sid) AS used_calls,
+      (r.api_limit - COUNT(DISTINCT c.call_sid)) AS remaining_calls
     FROM users u
     JOIN roles r ON u.role_id = r.id
     LEFT JOIN calls c ON c.user_id = u.id
     WHERE u.id = ?
-    GROUP BY u.id
+    GROUP BY u.id, u.email, r.api_limit
     `,
     [userId]
   );
 
-  if (rows.length === 0) {
-    return null;
-  }
-
-  return rows[0];
+  return rows[0] || null;
 };
 
 const listAllUserUsage = async () => {
@@ -54,12 +50,12 @@ const listAllUserUsage = async () => {
       u.email,
       r.role_name,
       r.api_limit,
-      COUNT(c.id) AS used_calls,
-      (r.api_limit - COUNT(c.id)) AS remaining_calls
+      COUNT(DISTINCT c.call_sid) AS used_calls,
+      (r.api_limit - COUNT(DISTINCT c.call_sid)) AS remaining_calls
     FROM users u
     JOIN roles r ON u.role_id = r.id
     LEFT JOIN calls c ON c.user_id = u.id
-    GROUP BY u.id
+    GROUP BY u.id, u.email, r.role_name, r.api_limit
     `
   );
 
@@ -72,7 +68,7 @@ const getUserRole = async (userId) => {
     [userId]
   );
 
-  return rows[0];
+  return rows[0]?.role_id || null;
 };
 
 const findUserById = async (userId) => {
@@ -81,7 +77,7 @@ const findUserById = async (userId) => {
     [userId]
   );
 
-  return rows[0];
+  return rows[0] || null;
 };
 
 const updatePasswordById = async (userId, hashedPassword) => {
@@ -94,7 +90,7 @@ const updatePasswordById = async (userId, hashedPassword) => {
 module.exports = {
   createUser,
   findUserByEmail,
-  getRemainingTimesByID,
+  getRemainingCallsById,
   listAllUserUsage,
   getUserRole,
   findUserById,

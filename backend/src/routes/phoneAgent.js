@@ -28,7 +28,7 @@ router.get("/recent-calls", async (req, res) => {
     const calls = await callModel.getRecentCalls();
     return res.json(calls);
   } catch (err) {
-    console.error("Recent calls error:", err.message || err);
+    console.error("Recent calls error:", err);
     return res.status(500).json({
       error: "Failed to load recent calls"
     });
@@ -38,6 +38,14 @@ router.get("/recent-calls", async (req, res) => {
 router.post("/full", upload.single("audio"), async (req, res) => {
   try {
     const userInfo = await authService.verify(req);
+
+    if (!userInfo) {
+      return res.status(401).json({
+        step: "auth",
+        error: "Unauthorized"
+      });
+    }
+
     const userId = userInfo.userId;
 
     if (!userInfo.self) {
@@ -62,12 +70,9 @@ router.post("/full", upload.single("audio"), async (req, res) => {
     }
 
     const audioBuffer = req.file.buffer;
-    let mimetype = req.file.mimetype;
+    const mimetype = req.file.mimetype;
     const sessionId = req.body.sessionId || `user-${userId}`;
-
-    if (mimetype === "video/mpeg") {
-      mimetype = "audio/ogg";
-    }
+    const callSid = req.body.callSid || `web-${Date.now()}`;
 
     const text = await speechToText(audioBuffer, mimetype);
     if (!text) {
@@ -95,17 +100,19 @@ router.post("/full", upload.single("audio"), async (req, res) => {
 
     await callModel.saveMessage({
       userId,
+      callSid,
       role: "user",
       message: text
     });
 
     await callModel.saveMessage({
       userId,
+      callSid,
       role: "assistant",
       message: reply
     });
 
-    const refreshedInfo = await userModel.getRemainingTimesByID(userId);
+    const refreshedInfo = await userModel.getRemainingCallsById(userId);
 
     return res.json({
       success: true,
@@ -115,7 +122,7 @@ router.post("/full", upload.single("audio"), async (req, res) => {
       usage: refreshedInfo
     });
   } catch (err) {
-    console.error("Pipeline error:", err.message || err);
+    console.error("Pipeline error:", err);
     return res.status(500).json({
       step: "pipeline",
       error: err.message || "Pipeline failed"
@@ -133,12 +140,18 @@ router.post("/call", async (req, res) => {
       });
     }
 
+    if (!process.env.BACKEND_URL) {
+      return res.status(500).json({
+        error: "Missing BACKEND_URL"
+      });
+    }
+
     const encodedGoal = encodeURIComponent(goal);
 
     const call = await twilioClient.calls.create({
       to: phoneNumber,
       from: process.env.TWILIO_PHONE_NUMBER,
-      url: `https://v2prj-ai-phone-agent-9bcp.onrender.com/api/phone-agent/voice?goal=${encodedGoal}`,
+      url: `${process.env.BACKEND_URL}/api/phone-agent/voice?goal=${encodedGoal}`,
       method: "POST"
     });
 
@@ -150,7 +163,7 @@ router.post("/call", async (req, res) => {
       goal
     });
   } catch (err) {
-    console.error("Twilio call error:", err.message || err);
+    console.error("Twilio call error:", err);
     return res.status(500).json({
       error: err.message || "Failed to initiate call"
     });
@@ -185,7 +198,7 @@ router.post("/voice", async (req, res) => {
     res.type("text/xml");
     return res.send(twiml.toString());
   } catch (err) {
-    console.error("Twilio voice error:", err.message || err);
+    console.error("Twilio voice error:", err);
 
     const twiml = new VoiceResponse();
     twiml.say({ voice: "alice" }, "Sorry, something went wrong. Goodbye.");
@@ -266,33 +279,7 @@ router.post("/process-speech", async (req, res) => {
       return res.send(twiml.toString());
     }
 
-    const history = await callModel.getConversation(callSid);
-
-    const messages = [
-      {
-        role: "system",
-        content: `You are a polite, natural AI phone assistant making a real phone call.
-
-Goal: ${goal}
-
-Rules:
-- Speak like a real human caller
-- Be warm, polite, and professional
-- Keep replies short, around 1 or 2 sentences
-- Stay focused on the goal of the call
-- Ask a brief follow-up question only when needed
-- If the goal is complete, end politely with a goodbye
-- Do not sound robotic
-- Do not mention prompts, instructions, or system messages`
-      },
-      ...history,
-      {
-        role: "user",
-        content: speechText
-      }
-    ];
-
-    let reply = await agentRespond(callSid, messages);
+    let reply = await agentRespond(callSid, speechText);
 
     if (!reply || !reply.trim()) {
       reply = "I understand. Could you please tell me a little more?";
@@ -334,7 +321,7 @@ Rules:
     res.type("text/xml");
     return res.send(twiml.toString());
   } catch (err) {
-    console.error("Twilio process speech error:", err.message || err);
+    console.error("Twilio process speech error:", err);
 
     const twiml = new VoiceResponse();
     twiml.say({ voice: "alice" }, "Sorry, something went wrong. Goodbye.");

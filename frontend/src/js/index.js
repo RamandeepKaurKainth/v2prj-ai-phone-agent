@@ -1,6 +1,6 @@
-console.log("CORRECT index.js loaded");
+console.log("index.js loaded");
 
-const API_BASE = "https://v2prj-ai-phone-agent-9bcp.onrender.com";
+const API_BASE = window.location.origin;
 
 const loginTab = document.getElementById("loginTab");
 const registerTab = document.getElementById("registerTab");
@@ -48,6 +48,12 @@ loginForm.addEventListener("submit", async (e) => {
   const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value.trim();
 
+  if (!email || !password) {
+    loginError.textContent = "Email and password are required.";
+    loginError.style.display = "block";
+    return;
+  }
+
   try {
     const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: "POST",
@@ -57,14 +63,7 @@ loginForm.addEventListener("submit", async (e) => {
       body: JSON.stringify({ email, password })
     });
 
-    const text = await res.text();
-    let data;
-
-    try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error("Server returned HTML instead of JSON");
-    }
+    const data = await res.json();
 
     if (!res.ok) {
       throw new Error(data.error || `Login failed (${res.status})`);
@@ -74,7 +73,7 @@ loginForm.addEventListener("submit", async (e) => {
     window.location.href = "dashboard.html";
   } catch (err) {
     console.error("Login error:", err);
-    loginError.textContent = err.message;
+    loginError.textContent = err.message || "Login failed.";
     loginError.style.display = "block";
   }
 });
@@ -88,6 +87,12 @@ registerForm.addEventListener("submit", async (e) => {
   const email = document.getElementById("registerEmail").value.trim();
   const password = document.getElementById("registerPassword").value.trim();
 
+  if (!email || !password) {
+    registerError.textContent = "Email and password are required.";
+    registerError.style.display = "block";
+    return;
+  }
+
   try {
     const res = await fetch(`${API_BASE}/api/auth/register`, {
       method: "POST",
@@ -97,14 +102,7 @@ registerForm.addEventListener("submit", async (e) => {
       body: JSON.stringify({ email, password })
     });
 
-    const text = await res.text();
-    let data;
-
-    try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error("Server returned HTML instead of JSON");
-    }
+    const data = await res.json();
 
     if (!res.ok) {
       throw new Error(data.error || `Registration failed (${res.status})`);
@@ -119,7 +117,7 @@ registerForm.addEventListener("submit", async (e) => {
     }, 1000);
   } catch (err) {
     console.error("Register error:", err);
-    registerError.textContent = err.message;
+    registerError.textContent = err.message || "Registration failed.";
     registerError.style.display = "block";
   }
 });
