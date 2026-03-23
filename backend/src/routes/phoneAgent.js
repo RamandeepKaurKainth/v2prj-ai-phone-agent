@@ -182,7 +182,7 @@ router.post("/voice", async (req, res) => {
 
     const gather = twiml.gather({
       input: "speech",
-      action: `/api/phone-agent/process-speech?goal=${encodeURIComponent(goal)}`,
+      action: `${process.env.BACKEND_URL}/api/phone-agent/process-speech?goal=${encodeURIComponent(goal)}`,
       method: "POST",
       speechTimeout: "auto",
       timeout: 5
@@ -192,7 +192,7 @@ router.post("/voice", async (req, res) => {
 
     twiml.redirect(
       { method: "POST" },
-      `/api/phone-agent/voice?goal=${encodeURIComponent(goal)}`
+      `${process.env.BACKEND_URL}/api/phone-agent/voice?goal=${encodeURIComponent(goal)}`
     );
 
     res.type("text/xml");
@@ -231,7 +231,7 @@ router.post("/process-speech", async (req, res) => {
 
       const gather = twiml.gather({
         input: "speech",
-        action: `/api/phone-agent/process-speech?goal=${encodeURIComponent(goal)}`,
+        action: `${process.env.BACKEND_URL}/api/phone-agent/process-speech?goal=${encodeURIComponent(goal)}`,
         method: "POST",
         speechTimeout: "auto",
         timeout: 5
@@ -310,7 +310,7 @@ router.post("/process-speech", async (req, res) => {
 
     const gather = twiml.gather({
       input: "speech",
-      action: `/api/phone-agent/process-speech?goal=${encodeURIComponent(goal)}`,
+      action: `${process.env.BACKEND_URL}/api/phone-agent/process-speech?goal=${encodeURIComponent(goal)}`,
       method: "POST",
       speechTimeout: "auto",
       timeout: 5
