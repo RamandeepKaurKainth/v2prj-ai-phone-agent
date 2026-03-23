@@ -15,7 +15,7 @@
       <div class="top-bar-left">
         <div class="brand-badge">AI Voice Assistant</div>
         <h1>AI Phone Agent Dashboard</h1>
-        <p>Record your voice, get a smart reply, and track account usage in real time.</p>
+        <p>Test the AI in the browser or start a real phone call through Twilio.</p>
       </div>
 
       <div class="top-bar-right">
@@ -73,6 +73,31 @@
         </div>
 
         <p id="result" class="result-text"></p>
+
+        <div class="response-card" style="margin-top: 24px;">
+          <h3>Real Phone Call (Twilio)</h3>
+
+          <label for="phoneNumber">Phone Number</label>
+          <input type="text" id="phoneNumber" placeholder="+1604xxxxxxx" />
+
+          <label for="callGoal" style="margin-top: 12px; display: block;">Call Goal</label>
+          <input
+            type="text"
+            id="callGoal"
+            placeholder="Call this number and remind the person about tomorrow's appointment"
+          />
+
+          <button
+            id="callBtn"
+            class="primary-btn"
+            style="margin-top: 15px;"
+            onclick="startPhoneCall()"
+          >
+            Start Phone Call
+          </button>
+
+          <p id="callResult" class="result-text"></p>
+        </div>
       </section>
 
       <aside class="side-column">
@@ -94,6 +119,16 @@
             </div>
           </div>
           <div id="UserListForAdmin"></div>
+        </section>
+
+        <section class="glass-card admin-card">
+          <div class="section-header">
+            <div>
+              <span class="section-tag">Calls</span>
+              <h2>Recent Phone Calls</h2>
+            </div>
+          </div>
+          <div id="recentCalls">Loading recent calls...</div>
         </section>
       </aside>
     </main>
