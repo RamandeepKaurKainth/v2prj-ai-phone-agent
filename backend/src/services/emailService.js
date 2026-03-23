@@ -1,3 +1,4 @@
+/*
 const dns = require("dns");
 dns.setDefaultResultOrder("ipv4first");
 
@@ -52,6 +53,37 @@ const sendPasswordResetEmail = async (email, resetLink) => {
   }
 };
 
+module.exports = {
+  sendPasswordResetEmail
+};
+*/
+// using Twilio SendGrid's v3 Node.js Library
+// https://github.com/sendgrid/sendgrid-nodejs
+const sgMail = require('@sendgrid/mail')
+sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+// sgMail.setDataResidency('eu');
+// uncomment the above line if you are sending mail using a regional EU subuser
+const sendPasswordResetEmail = async (email, resetLink) =>{
+const msg = {
+
+  from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Password Reset",
+      html: `
+        <p>You requested a password reset.</p>
+        <p>Click the link below to reset your password:</p>
+        <a href="${resetLink}">${resetLink}</a>
+      `
+}
+sgMail
+  .send(msg)
+  .then(() => {
+    console.log('Email sent')
+  })
+  .catch((error) => {
+    console.error(error)
+  })
+}
 module.exports = {
   sendPasswordResetEmail
 };
