@@ -30,7 +30,7 @@ const getConversation = async (callSid) => {
 
   const [rows] = await db.execute(
     `
-    SELECT role, transcript
+    SELECT transcript
     FROM calls
     WHERE call_sid = ?
     ORDER BY id ASC
@@ -39,7 +39,7 @@ const getConversation = async (callSid) => {
   );
 
   return rows.map((row) => ({
-    role: row.role,
+    role: "user",
     content: row.transcript
   }));
 };
@@ -47,7 +47,7 @@ const getConversation = async (callSid) => {
 const getRecentCalls = async () => {
   const [rows] = await db.execute(
     `
-    SELECT call_sid, phone_number, goal, transcript, role, created_at
+    SELECT id, call_sid, phone_number, goal, transcript, created_at
     FROM calls
     ORDER BY created_at DESC
     LIMIT 20
