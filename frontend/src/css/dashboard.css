@@ -80,6 +80,10 @@ body {
   margin-bottom: 24px;
 }
 
+.top-bar-left {
+  flex: 1;
+}
+
 .top-bar-left h1 {
   font-size: 34px;
   margin-top: 10px;
@@ -151,8 +155,9 @@ body {
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 1.6fr 1fr;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
   gap: 24px;
+  align-items: start;
 }
 
 .main-card,
@@ -322,7 +327,6 @@ input:focus {
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  min-height: 180px;
 }
 
 .response-card h3 {
@@ -353,6 +357,15 @@ audio {
   min-height: 22px;
   color: #bfdbfe;
   font-size: 14px;
+  word-break: break-word;
+}
+
+#callResult {
+  margin-top: 12px;
+  min-height: 22px;
+  color: #bfdbfe;
+  line-height: 1.6;
+  word-break: break-word;
 }
 
 #userInfo p,
@@ -407,6 +420,10 @@ audio {
   .response-grid {
     grid-template-columns: 1fr;
   }
+
+  .side-column {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 700px) {
@@ -423,5 +440,25 @@ audio {
   .stats-card,
   .admin-card {
     padding: 20px;
+  }
+
+  .call-visual {
+    width: 150px;
+    height: 150px;
+  }
+
+  .ring-1 {
+    width: 90px;
+    height: 90px;
+  }
+
+  .ring-2 {
+    width: 120px;
+    height: 120px;
+  }
+
+  .ring-3 {
+    width: 150px;
+    height: 150px;
   }
 }

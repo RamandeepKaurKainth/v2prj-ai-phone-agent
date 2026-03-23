@@ -5,40 +5,33 @@ if (!token) {
   window.location.href = "index.html";
 }
 
-function setCallState(state, message = "") {
-  const callCore = document.getElementById("callCore");
-  const callCoreText = document.getElementById("callCoreText");
-  const recordingStatus = document.getElementById("recordingStatus");
-  const result = document.getElementById("result");
+const recordBtn = document.getElementById("recordBtn");
+const recordingStatus = document.getElementById("recordingStatus");
+const transcript = document.getElementById("transcript");
+const agentReply = document.getElementById("agentReply");
+const replyAudio = document.getElementById("replyAudio");
+const result = document.getElementById("result");
+const callCoreText = document.getElementById("callCoreText");
+const userInfoBox = document.getElementById("userInfo");
+const adminListBox = document.getElementById("UserListForAdmin");
+const recentCallsBox = document.getElementById("recentCalls");
 
-  callCore.classList.remove("active");
-
-  if (state === "ready") {
-    callCoreText.textContent = "Ready";
-    recordingStatus.textContent = message || "Press the button to record 5 seconds of audio.";
-  }
-
+function setCallState(state) {
   if (state === "recording") {
-    callCore.classList.add("active");
-    callCoreText.textContent = "Live";
-    recordingStatus.textContent = message || "Recording... please speak now.";
-  }
-
-  if (state === "processing") {
-    callCore.classList.add("active");
-    callCoreText.textContent = "AI";
-    recordingStatus.textContent = message || "Processing your audio...";
-  }
-
-  if (state === "done") {
-    callCoreText.textContent = "Done";
-    recordingStatus.textContent = message || "Voice request completed successfully.";
-  }
-
-  if (state === "error") {
-    callCoreText.textContent = "Error";
-    recordingStatus.textContent = message || "Something went wrong.";
-    result.textContent = message || "Something went wrong.";
+    callCoreText.textContent = "Listening";
+    recordingStatus.textContent = "Recording 5 seconds of audio...";
+    recordBtn.disabled = true;
+    recordBtn.textContent = "Recording...";
+  } else if (state === "processing") {
+    callCoreText.textContent = "Processing";
+    recordingStatus.textContent = "Sending audio to AI...";
+    recordBtn.disabled = true;
+    recordBtn.textContent = "Processing...";
+  } else {
+    callCoreText.textContent = "Ready";
+    recordingStatus.textContent = "Press the button to record 5 seconds of audio.";
+    recordBtn.disabled = false;
+    recordBtn.textContent = "Start Recording";
   }
 }
 
@@ -51,162 +44,224 @@ async function loadUserInfo() {
       }
     });
 
-    const text = await res.text();
-    let data;
-
-    try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error("Server returned invalid JSON");
-    }
+    const data = await res.json();
 
     if (!res.ok) {
       throw new Error(data.error || "Failed to load user info");
     }
 
-    renderUserInfo(data);
+    userInfoBox.innerHTML = `
+      <p><strong>Email:</strong> ${data.email}</p>
+      <p><strong>Role:</strong> ${data.is_admin ? "Admin" : "User"}</p>
+      <p><strong>Remaining calls:</strong> ${data.remaining_calls}</p>
+    `;
+
+    if (data.is_admin) {
+      loadAdminUsers();
+    } else {
+      adminListBox.innerHTML = "<p>Admin access only.</p>";
+    }
   } catch (err) {
-    console.error("User info error:", err.message);
-    localStorage.removeItem("token");
-    window.location.href = "index.html";
+    console.error("User info error:", err);
+    userInfoBox.innerHTML = `<p>${err.message}</p>`;
   }
 }
 
-function renderUserInfo(data) {
-  const userInfoDiv = document.getElementById("userInfo");
-  const adminListDiv = document.getElementById("UserListForAdmin");
-
-  if (data.type === "user") {
-    userInfoDiv.innerHTML = `
-      <p><strong>User:</strong> ${data.self.email}</p>
-      <p><strong>API Limit:</strong> ${data.self.api_limit}</p>
-      <p><strong>Used Calls:</strong> ${data.self.used_calls}</p>
-      <p><strong>Remaining Calls:</strong> ${data.self.remaining_calls}</p>
-    `;
-    adminListDiv.innerHTML = "";
-  } else if (data.type === "admin") {
-    userInfoDiv.innerHTML = `
-      <p><strong>Admin:</strong> ${data.self.email}</p>
-      <p><strong>API Limit:</strong> ${data.self.api_limit}</p>
-      <p><strong>Used Calls:</strong> ${data.self.used_calls}</p>
-      <p><strong>Remaining Calls:</strong> ${data.self.remaining_calls}</p>
-    `;
-
-    let html = "<h3>All Users</h3>";
-
-    data.users.forEach((user) => {
-      html += `
-        <div class="user-box">
-          <p><strong>Email:</strong> ${user.email}</p>
-          <p><strong>Role:</strong> ${user.role_name}</p>
-          <p><strong>API Limit:</strong> ${user.api_limit}</p>
-          <p><strong>Used Calls:</strong> ${user.used_calls}</p>
-          <p><strong>Remaining Calls:</strong> ${user.remaining_calls}</p>
-        </div>
-      `;
+async function loadAdminUsers() {
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/admin/users`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
     });
 
-    adminListDiv.innerHTML = html;
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to load admin data");
+    }
+
+    if (!Array.isArray(data) || data.length === 0) {
+      adminListBox.innerHTML = "<p>No users found.</p>";
+      return;
+    }
+
+    adminListBox.innerHTML = data.map(user => `
+      <div class="user-box">
+        <p><strong>${user.email}</strong></p>
+        <p>Remaining calls: ${user.remaining_calls}</p>
+      </div>
+    `).join("");
+  } catch (err) {
+    console.error("Admin load error:", err);
+    adminListBox.innerHTML = `<p>${err.message}</p>`;
   }
 }
 
-async function recordAudio(seconds = 5) {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  const mediaRecorder = new MediaRecorder(stream);
-  const chunks = [];
+async function loadRecentCalls() {
+  try {
+    const res = await fetch(`${API_BASE}/api/phone-agent/recent-calls`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
 
-  return new Promise((resolve, reject) => {
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to load recent calls");
+    }
+
+    if (!Array.isArray(data) || data.length === 0) {
+      recentCallsBox.innerHTML = "<p>No recent calls found.</p>";
+      return;
+    }
+
+    recentCallsBox.innerHTML = data.map(call => `
+      <div class="user-box">
+        <p><strong>Phone:</strong> ${call.phone_number || "N/A"}</p>
+        <p><strong>Goal:</strong> ${call.goal || "N/A"}</p>
+        <p><strong>Role:</strong> ${call.role || "N/A"}</p>
+        <p><strong>Message:</strong> ${call.transcript || ""}</p>
+        <p><strong>Time:</strong> ${call.created_at ? new Date(call.created_at).toLocaleString() : "N/A"}</p>
+      </div>
+    `).join("");
+  } catch (err) {
+    console.error("Recent calls error:", err);
+    recentCallsBox.innerHTML = `<p>${err.message}</p>`;
+  }
+}
+
+async function recordAndSend() {
+  result.textContent = "";
+  transcript.textContent = "Listening...";
+  agentReply.textContent = "Waiting for response...";
+  replyAudio.removeAttribute("src");
+  replyAudio.load();
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mediaRecorder = new MediaRecorder(stream);
+    const chunks = [];
+
     mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        chunks.push(event.data);
+      chunks.push(event.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+      setCallState("processing");
+
+      const audioBlob = new Blob(chunks, { type: "audio/webm" });
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "recording.webm");
+      formData.append("sessionId", document.getElementById("sessionId").value || "conversation-1");
+
+      try {
+        const res = await fetch(`${API_BASE}/api/phone-agent/full`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "AI request failed");
+        }
+
+        transcript.textContent = data.text || "No transcript returned.";
+        agentReply.textContent = data.reply || "No reply returned.";
+
+        if (data.audio) {
+          replyAudio.src = `data:audio/mp3;base64,${data.audio}`;
+        }
+
+        if (data.usage && typeof data.usage.remaining_calls !== "undefined") {
+          result.textContent = `Remaining calls: ${data.usage.remaining_calls}`;
+        } else {
+          result.textContent = "Request completed successfully.";
+        }
+
+        await loadUserInfo();
+        await loadRecentCalls();
+      } catch (err) {
+        console.error("Pipeline error:", err);
+        result.textContent = err.message;
+        transcript.textContent = "No transcript yet.";
+        agentReply.textContent = "No reply yet.";
+      } finally {
+        setCallState("ready");
+        stream.getTracks().forEach(track => track.stop());
       }
     };
 
-    mediaRecorder.onerror = (event) => {
-      reject(event.error || new Error("Recording failed"));
-    };
-
-    mediaRecorder.onstop = () => {
-      stream.getTracks().forEach((track) => track.stop());
-      const audioBlob = new Blob(chunks, { type: "audio/webm" });
-      resolve(audioBlob);
-    };
-
+    setCallState("recording");
     mediaRecorder.start();
 
     setTimeout(() => {
       mediaRecorder.stop();
-    }, seconds * 1000);
-  });
+    }, 5000);
+  } catch (err) {
+    console.error("Recording error:", err);
+    result.textContent = "Microphone access denied or unavailable.";
+    setCallState("ready");
+  }
 }
 
-async function recordAndSend() {
-  const result = document.getElementById("result");
-  const transcriptEl = document.getElementById("transcript");
-  const replyEl = document.getElementById("agentReply");
-  const replyAudio = document.getElementById("replyAudio");
-  const recordBtn = document.getElementById("recordBtn");
-  const sessionIdInput = document.getElementById("sessionId");
+async function startPhoneCall() {
+  const phoneInput = document.getElementById("phoneNumber");
+  const goalInput = document.getElementById("callGoal");
+  const callResult = document.getElementById("callResult");
+  const callBtn = document.getElementById("callBtn");
 
-  result.textContent = "";
-  transcriptEl.textContent = "Waiting for transcript...";
-  replyEl.textContent = "Waiting for reply...";
-  recordBtn.disabled = true;
-  recordBtn.textContent = "Recording...";
+  const phoneNumber = phoneInput.value.trim();
+  const goal = goalInput.value.trim();
+
+  callResult.textContent = "";
+
+  if (!phoneNumber || !goal) {
+    callResult.textContent = "Please enter both phone number and call goal.";
+    return;
+  }
+
+  callBtn.disabled = true;
+  callBtn.textContent = "Starting Call...";
 
   try {
-    setCallState("recording");
-
-    const audioBlob = await recordAudio(5);
-
-    setCallState("processing", "Uploading audio and generating AI response...");
-
-    const formData = new FormData();
-    formData.append("audio", audioBlob, "recording.webm");
-    formData.append("sessionId", sessionIdInput.value.trim() || "conversation-1");
-
-    const res = await fetch(`${API_BASE}/api/phone-agent/full`, {
+    const res = await fetch(`${API_BASE}/api/phone-agent/call`, {
       method: "POST",
       headers: {
+        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
       },
-      body: formData
+      body: JSON.stringify({
+        phoneNumber,
+        goal
+      })
     });
 
-    const text = await res.text();
-    let data;
-
-    try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error("Server returned invalid JSON");
-    }
+    const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.error || `Request failed (${res.status})`);
+      throw new Error(data.error || "Failed to start phone call.");
     }
 
-    transcriptEl.textContent = data.text || "No transcript received.";
-    replyEl.textContent = data.reply || "No reply received.";
-    result.textContent = "Conversation completed successfully.";
-    setCallState("done", "AI reply received successfully.");
-
-    if (data.audio) {
-      replyAudio.src = `data:audio/mpeg;base64,${data.audio}`;
-      replyAudio.play().catch(() => {
-        console.log("Autoplay blocked by browser.");
-      });
-    }
-
+    callResult.textContent = `Call started successfully. Call SID: ${data.callSid}`;
     await loadUserInfo();
+    await loadRecentCalls();
   } catch (err) {
-    console.error("Voice agent error:", err);
-    setCallState("error", err.message || "Something went wrong.");
+    console.error("Phone call error:", err);
+    callResult.textContent = err.message || "Failed to start phone call.";
   } finally {
-    recordBtn.disabled = false;
-    recordBtn.textContent = "Start Recording";
+    callBtn.disabled = false;
+    callBtn.textContent = "Start Phone Call";
   }
 }
 
 setCallState("ready");
 loadUserInfo();
+loadRecentCalls();

@@ -23,6 +23,18 @@ router.get("/test", (req, res) => {
   res.send("phone agent route works");
 });
 
+router.get("/recent-calls", async (req, res) => {
+  try {
+    const calls = await callModel.getRecentCalls();
+    return res.json(calls);
+  } catch (err) {
+    console.error("Recent calls error:", err.message || err);
+    return res.status(500).json({
+      error: "Failed to load recent calls"
+    });
+  }
+});
+
 router.post("/full", upload.single("audio"), async (req, res) => {
   try {
     const userInfo = await authService.verify(req);
@@ -81,7 +93,17 @@ router.post("/full", upload.single("audio"), async (req, res) => {
       });
     }
 
-    await callModel.recordCall(userId, text, reply);
+    await callModel.saveMessage({
+      userId,
+      role: "user",
+      message: text
+    });
+
+    await callModel.saveMessage({
+      userId,
+      role: "assistant",
+      message: reply
+    });
 
     const refreshedInfo = await userModel.getRemainingTimesByID(userId);
 
@@ -138,21 +160,22 @@ router.post("/call", async (req, res) => {
 router.post("/voice", async (req, res) => {
   try {
     const twiml = new VoiceResponse();
-    const goal = req.query.goal || "Have a helpful conversation.";
+    const goal = req.query.goal || "I am calling to have a helpful conversation.";
 
     twiml.say(
       { voice: "alice" },
-      `Hello. This is the AI phone agent. My goal for this conversation is: ${goal}. Please tell me how I can help you.`
+      `Hello, this is an AI assistant calling. ${goal} Please let me know your response after the beep.`
     );
 
     const gather = twiml.gather({
       input: "speech",
       action: `/api/phone-agent/process-speech?goal=${encodeURIComponent(goal)}`,
       method: "POST",
-      speechTimeout: "auto"
+      speechTimeout: "auto",
+      timeout: 5
     });
 
-    gather.say({ voice: "alice" }, "I am listening.");
+    gather.say({ voice: "alice" }, "I'm listening.");
 
     twiml.redirect(
       { method: "POST" },
@@ -165,7 +188,7 @@ router.post("/voice", async (req, res) => {
     console.error("Twilio voice error:", err.message || err);
 
     const twiml = new VoiceResponse();
-    twiml.say({ voice: "alice" }, "Sorry, something went wrong.");
+    twiml.say({ voice: "alice" }, "Sorry, something went wrong. Goodbye.");
     twiml.hangup();
 
     res.type("text/xml");
@@ -175,17 +198,19 @@ router.post("/voice", async (req, res) => {
 
 router.post("/process-speech", async (req, res) => {
   try {
-    const speechText = req.body.SpeechResult || "";
+    const speechText = (req.body.SpeechResult || "").trim();
     const callSid = req.body.CallSid || `twilio-${Date.now()}`;
+    const phoneNumber = req.body.From || null;
     const goal = req.query.goal || "Have a helpful conversation.";
 
     console.log("Twilio speech received:", speechText);
     console.log("CallSid:", callSid);
+    console.log("Phone number:", phoneNumber);
     console.log("Goal:", goal);
 
     const twiml = new VoiceResponse();
 
-    if (!speechText.trim()) {
+    if (!speechText) {
       twiml.say(
         { voice: "alice" },
         "Sorry, I did not catch that. Please say it again."
@@ -195,7 +220,8 @@ router.post("/process-speech", async (req, res) => {
         input: "speech",
         action: `/api/phone-agent/process-speech?goal=${encodeURIComponent(goal)}`,
         method: "POST",
-        speechTimeout: "auto"
+        speechTimeout: "auto",
+        timeout: 5
       });
 
       gather.say({ voice: "alice" }, "Please speak now.");
@@ -204,22 +230,106 @@ router.post("/process-speech", async (req, res) => {
       return res.send(twiml.toString());
     }
 
-    const prompt = `Conversation goal: ${goal}. Caller said: ${speechText}`;
-    const reply = await agentRespond(callSid, prompt);
+    await callModel.saveMessage({
+      callSid,
+      phoneNumber,
+      goal,
+      role: "user",
+      message: speechText
+    });
+
+    const lowerText = speechText.toLowerCase();
+    const shouldEnd =
+      lowerText.includes("bye") ||
+      lowerText.includes("goodbye") ||
+      lowerText.includes("thank you") ||
+      lowerText.includes("thanks that's all") ||
+      lowerText.includes("that is all") ||
+      lowerText.includes("no that's all") ||
+      lowerText.includes("nothing else");
+
+    if (shouldEnd) {
+      const goodbyeReply = "Thank you. Have a great day. Goodbye.";
+
+      await callModel.saveMessage({
+        callSid,
+        phoneNumber,
+        goal,
+        role: "assistant",
+        message: goodbyeReply
+      });
+
+      twiml.say({ voice: "alice" }, goodbyeReply);
+      twiml.hangup();
+
+      res.type("text/xml");
+      return res.send(twiml.toString());
+    }
+
+    const history = await callModel.getConversation(callSid);
+
+    const messages = [
+      {
+        role: "system",
+        content: `You are a polite, natural AI phone assistant making a real phone call.
+
+Goal: ${goal}
+
+Rules:
+- Speak like a real human caller
+- Be warm, polite, and professional
+- Keep replies short, around 1 or 2 sentences
+- Stay focused on the goal of the call
+- Ask a brief follow-up question only when needed
+- If the goal is complete, end politely with a goodbye
+- Do not sound robotic
+- Do not mention prompts, instructions, or system messages`
+      },
+      ...history,
+      {
+        role: "user",
+        content: speechText
+      }
+    ];
+
+    let reply = await agentRespond(callSid, messages);
+
+    if (!reply || !reply.trim()) {
+      reply = "I understand. Could you please tell me a little more?";
+    }
+
+    await callModel.saveMessage({
+      callSid,
+      phoneNumber,
+      goal,
+      role: "assistant",
+      message: reply
+    });
+
+    const replyLower = reply.toLowerCase();
+    const aiEndsCall =
+      replyLower.includes("goodbye") ||
+      replyLower.includes("have a great day") ||
+      replyLower.includes("have a nice day") ||
+      replyLower.includes("thank you for your time");
 
     twiml.say({ voice: "alice" }, reply);
+
+    if (aiEndsCall) {
+      twiml.hangup();
+      res.type("text/xml");
+      return res.send(twiml.toString());
+    }
 
     const gather = twiml.gather({
       input: "speech",
       action: `/api/phone-agent/process-speech?goal=${encodeURIComponent(goal)}`,
       method: "POST",
-      speechTimeout: "auto"
+      speechTimeout: "auto",
+      timeout: 5
     });
 
-    gather.say(
-      { voice: "alice" },
-      "You can say something else, or simply hang up."
-    );
+    gather.say({ voice: "alice" }, "Please go ahead.");
 
     res.type("text/xml");
     return res.send(twiml.toString());
@@ -227,7 +337,7 @@ router.post("/process-speech", async (req, res) => {
     console.error("Twilio process speech error:", err.message || err);
 
     const twiml = new VoiceResponse();
-    twiml.say({ voice: "alice" }, "Sorry, something went wrong.");
+    twiml.say({ voice: "alice" }, "Sorry, something went wrong. Goodbye.");
     twiml.hangup();
 
     res.type("text/xml");
