@@ -1,6 +1,6 @@
 console.log("forgot-password.js loaded");
 
-const API_BASE = window.location.origin;
+const API_BASE = "https://v2prj-ai-phone-agent-9bcp.onrender.com";
 
 const forgotForm = document.getElementById("forgotPasswordForm");
 const forgotError = document.getElementById("forgotError");

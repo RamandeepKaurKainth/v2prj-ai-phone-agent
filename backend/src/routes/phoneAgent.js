@@ -30,7 +30,7 @@ router.get("/recent-calls", async (req, res) => {
   } catch (err) {
     console.error("Recent calls error:", err);
     return res.status(500).json({
-      error: "Failed to load recent calls"
+      error: err.message || "Failed to load recent calls"
     });
   }
 });

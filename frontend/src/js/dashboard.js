@@ -1,4 +1,5 @@
-const API_BASE = window.location.origin;
+const API_BASE = "https://v2prj-ai-phone-agent-9bcp.onrender.com";
+
 const token = localStorage.getItem("token");
 
 if (!token) {

@@ -1,6 +1,6 @@
 console.log("index.js loaded");
 
-const API_BASE = window.location.origin;
+const API_BASE = "https://v2prj-ai-phone-agent-9bcp.onrender.com";
 
 const loginTab = document.getElementById("loginTab");
 const registerTab = document.getElementById("registerTab");
@@ -63,10 +63,21 @@ loginForm.addEventListener("submit", async (e) => {
       body: JSON.stringify({ email, password })
     });
 
-    const data = await res.json();
+    const text = await res.text();
+    let data = {};
+
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      throw new Error(`Server returned invalid response (${res.status})`);
+    }
 
     if (!res.ok) {
-      throw new Error(data.error || `Login failed (${res.status})`);
+      throw new Error(data.error || data.message || `Login failed (${res.status})`);
+    }
+
+    if (!data.token) {
+      throw new Error("Login succeeded but token was not returned.");
     }
 
     localStorage.setItem("token", data.token);
@@ -102,10 +113,17 @@ registerForm.addEventListener("submit", async (e) => {
       body: JSON.stringify({ email, password })
     });
 
-    const data = await res.json();
+    const text = await res.text();
+    let data = {};
+
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      throw new Error(`Server returned invalid response (${res.status})`);
+    }
 
     if (!res.ok) {
-      throw new Error(data.error || `Registration failed (${res.status})`);
+      throw new Error(data.error || data.message || `Registration failed (${res.status})`);
     }
 
     registerSuccess.textContent = "Account created successfully. You can login now.";

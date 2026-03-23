@@ -1,4 +1,4 @@
-const API_BASE = window.location.origin;
+const API_BASE = "https://v2prj-ai-phone-agent-9bcp.onrender.com";
 
 const resetForm = document.getElementById("resetPasswordForm");
 const resetError = document.getElementById("resetError");
