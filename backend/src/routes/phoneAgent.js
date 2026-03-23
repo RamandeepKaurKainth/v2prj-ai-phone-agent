@@ -14,6 +14,10 @@ const { agentRespond } = require("../ai/agentService");
 const { textToSpeech } = require("../ai/ttsService");
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
+const twilioClient = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
 
 router.get("/test", (req, res) => {
   res.send("phone agent route works");
@@ -97,25 +101,63 @@ router.post("/full", upload.single("audio"), async (req, res) => {
   }
 });
 
+router.post("/call", async (req, res) => {
+  try {
+    const { phoneNumber, goal } = req.body;
+
+    if (!phoneNumber || !goal) {
+      return res.status(400).json({
+        error: "phoneNumber and goal are required"
+      });
+    }
+
+    const encodedGoal = encodeURIComponent(goal);
+
+    const call = await twilioClient.calls.create({
+      to: phoneNumber,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      url: `https://v2prj-ai-phone-agent-9bcp.onrender.com/api/phone-agent/voice?goal=${encodedGoal}`,
+      method: "POST"
+    });
+
+    return res.json({
+      success: true,
+      message: "Call initiated successfully",
+      callSid: call.sid,
+      phoneNumber,
+      goal
+    });
+  } catch (err) {
+    console.error("Twilio call error:", err.message || err);
+    return res.status(500).json({
+      error: err.message || "Failed to initiate call"
+    });
+  }
+});
+
 router.post("/voice", async (req, res) => {
   try {
     const twiml = new VoiceResponse();
+    const goal = req.query.goal || "Have a helpful conversation.";
 
     twiml.say(
       { voice: "alice" },
-      "Hello. You have reached the AI phone agent. Please tell me how I can help you."
+      `Hello. This is the AI phone agent. My goal for this conversation is: ${goal}. Please tell me how I can help you.`
     );
 
     const gather = twiml.gather({
       input: "speech",
-      action: "/api/phone-agent/process-speech",
+      action: `/api/phone-agent/process-speech?goal=${encodeURIComponent(goal)}`,
       method: "POST",
       speechTimeout: "auto"
     });
 
     gather.say({ voice: "alice" }, "I am listening.");
 
-    twiml.redirect({ method: "POST" }, "/api/phone-agent/voice");
+    twiml.redirect(
+      { method: "POST" },
+      `/api/phone-agent/voice?goal=${encodeURIComponent(goal)}`
+    );
 
     res.type("text/xml");
     return res.send(twiml.toString());
@@ -135,9 +177,11 @@ router.post("/process-speech", async (req, res) => {
   try {
     const speechText = req.body.SpeechResult || "";
     const callSid = req.body.CallSid || `twilio-${Date.now()}`;
+    const goal = req.query.goal || "Have a helpful conversation.";
 
     console.log("Twilio speech received:", speechText);
     console.log("CallSid:", callSid);
+    console.log("Goal:", goal);
 
     const twiml = new VoiceResponse();
 
@@ -149,7 +193,7 @@ router.post("/process-speech", async (req, res) => {
 
       const gather = twiml.gather({
         input: "speech",
-        action: "/api/phone-agent/process-speech",
+        action: `/api/phone-agent/process-speech?goal=${encodeURIComponent(goal)}`,
         method: "POST",
         speechTimeout: "auto"
       });
@@ -160,16 +204,14 @@ router.post("/process-speech", async (req, res) => {
       return res.send(twiml.toString());
     }
 
-    const reply = await agentRespond(callSid, speechText);
-
-    // Commented for now because Twilio caller may not have a userId
-    // await callModel.recordCall(null, speechText, reply);
+    const prompt = `Conversation goal: ${goal}. Caller said: ${speechText}`;
+    const reply = await agentRespond(callSid, prompt);
 
     twiml.say({ voice: "alice" }, reply);
 
     const gather = twiml.gather({
       input: "speech",
-      action: "/api/phone-agent/process-speech",
+      action: `/api/phone-agent/process-speech?goal=${encodeURIComponent(goal)}`,
       method: "POST",
       speechTimeout: "auto"
     });
